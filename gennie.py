@@ -242,8 +242,9 @@ class ClinVarAPI:
 
 with open('./test/BRCA_2022/101_22.txt', 'r') as input_file:
     logging.debug(f'file: {input_file.name}')
-    for line in input_file.readlines()[1:]:
+    search_and_results: list[tuple[Mutation, ClinVarVariation | None]] = []
         if len(line) == 0:
             continue
         m = Mutation(line)
-        m.search_clinvar()
+        clinvar_record = m.search_clinvar()
+        search_and_results.append((m, clinvar_record))
