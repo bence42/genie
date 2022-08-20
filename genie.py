@@ -250,7 +250,7 @@ class ClinVarAPI:
 def write_csv(results_file_name: str, search_and_results: list[tuple[Mutation, ClinVarVariation | None]]):
     with open(f'./results/{results_file_name}', 'w') as output:
         output.write(
-            f'Chromosome;Base position;Clinvar title;Clinvar accession;Frequency;Clinical significance')
+            f'Chromosome;Base position;ClinVar title;ClinVar accession;Frequency;Clinical significance')
         for mutation, clinvar_record in search_and_results:
             if clinvar_record:
                 output.write(
