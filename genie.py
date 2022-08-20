@@ -3,6 +3,7 @@ import logging
 import time
 import json
 import sys
+from pathlib import Path
 import xml.etree.ElementTree as ET
 
 
@@ -133,6 +134,7 @@ class Mutation:
             variation = ClinVarAPI.find_specific_variation(variation_id)
             self.variations.append(variation)
 
+            # cdna_change ofthen contains the mutation, this is the most straightforward way to match
             if(f'{self.reference_base}>{self.variant_base}' in variation.cdna_change):
                 self.find_accession_version(variation)
                 return variation
@@ -153,6 +155,7 @@ class Mutation:
         return None
 
     def find_accession_version(self, variation: ClinVarVariation):
+        # This takes another ~600ms so we only do this when there's a match
         var_with_accession = ClinVarAPI.get_variation_accession_version(
             variation.id)
         if variation.accession == var_with_accession.accession:
@@ -243,6 +246,19 @@ class ClinVarAPI:
         return var
 
 
+def write_csv(results_file_name: str, search_and_results: list[tuple[Mutation, ClinVarVariation | None]]):
+    with open(f'./results/{results_file_name}', 'w') as output:
+        output.write(
+            f'Chromosome;Base position;Clinvar title;Clinvar accession;Frequency;Clinical significance')
+        for mutation, clinvar_record in search_and_results:
+            if clinvar_record:
+                output.write(
+                    f'\nchr{mutation.chromosome};{mutation.base_position};{clinvar_record.title};{clinvar_record.accession}.{clinvar_record.accession_version};{mutation.frequency}%;{clinvar_record.clinical_significance}')
+            else:
+                output.write(
+                    f'\nchr{mutation.chromosome};{mutation.base_position};;;;')
+
+
 def get_linecount(input_file):
     line_count = sum(1 for line in input_file if line.strip())
     input_file.seek(0)
@@ -263,3 +279,8 @@ with open('./test/BRCA_2022/112_22.txt', 'r') as input_file:
             f'[{idx+1:>3}/{line_count:<3}] chr{m.chromosome}:{m.base_position}')
         clinvar_record = m.search_clinvar()
         search_and_results.append((m, clinvar_record))
+
+    timestamp = time.strftime('%Y%m%d-%H%M%S')
+    results_file_name = Path(input_file.name).stem + \
+        f'_{timestamp}_results.csv'
+    write_csv(results_file_name, search_and_results)
