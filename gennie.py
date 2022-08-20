@@ -186,7 +186,7 @@ class ClinVarAPI:
         return variation_ids
 
     @staticmethod
-    def find_specific_variation(variation_id: str | int):
+    def find_specific_variation(variation_id: str | int) -> ClinVarVariation:
         # e.g: https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi?db=clinvar&id=822206&retmode=json
         esummary_request = f'{ClinVarAPI.BASE_ESUMMARY_URL}&id={variation_id}&retmode=json'
         logging.debug(esummary_request)
@@ -219,7 +219,7 @@ class ClinVarAPI:
         return var
 
     @staticmethod
-    def get_variation_accession_version(variation_id: str | int):
+    def get_variation_accession_version(variation_id: str | int) -> ClinVarVariation:
         # e.g: https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=clinvar&rettype=vcv&is_variationid&id=125889
         efetch_request = f'{ClinVarAPI.BASE_EFETCH_URL}&rettype=vcv&is_variationid&id={variation_id}'
         logging.debug(efetch_request)
