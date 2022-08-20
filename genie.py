@@ -155,9 +155,10 @@ class ClinVarAPI:
         esearch_request = f'{ClinVarAPI.BASE_ESEARCH_URL}&term={mutation.chromosome}[Chromosome]+AND+{mutation.base_position}[Base+Position+for+Assembly+GRCh37]&retmode=json'
         logging.debug(esearch_request)
         start_time = time.time()
-        esearch_response = urlopen(esearch_request)
+        with urlopen(esearch_request) as esearch_response:
         if not esearch_response.status == 200:
-            logging.error('esearch request failed: {esearch_response.status}')
+                logging.error(
+                    'esearch request failed: {esearch_response.status}')
             exit(1)
         end_time = time.time()
         logging.debug(
@@ -172,9 +173,10 @@ class ClinVarAPI:
         esummary_request = f'{ClinVarAPI.BASE_ESUMMARY_URL}&id={variation_id}&retmode=json'
         logging.debug(esummary_request)
         start_time = time.time()
-        esummary_response = urlopen(esummary_request)
+        with urlopen(esummary_request) as esummary_response:
         if not esummary_response.status == 200:
-            logging.error('efetch request failed: {esummary_response.status}')
+                logging.error(
+                    'efetch request failed: {esummary_response.status}')
             exit(1)
         end_time = time.time()
         logging.debug(
@@ -204,14 +206,16 @@ class ClinVarAPI:
         efetch_request = f'{ClinVarAPI.BASE_EFETCH_URL}&rettype=vcv&is_variationid&id={variation_id}'
         logging.debug(efetch_request)
         start_time = time.time()
-        efetch_response = urlopen(efetch_request)
+        with urlopen(efetch_request) as efetch_response:
         if not efetch_response.status == 200:
-            logging.error('efetch request failed: {efetch_response.status}')
+                logging.error(
+                    'efetch request failed: {efetch_response.status}')
             exit(1)
         end_time = time.time()
         logging.debug(
             f'efetch request took: {(end_time - start_time) * 1000:.0f}ms')
         root = ET.fromstring(efetch_response.read())
+
         var = ClinVarVariation()
         var.accession = root[0].attrib['Accession']
         var.accession_version = root[0].attrib['Version']
