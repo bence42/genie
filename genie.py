@@ -94,10 +94,10 @@ class Mutation:
         # Such a search is not possible: chr13:32890572 AND SNV AND G>A
         # The esearch API returns all records identified by chr13:32890572 and those
         # records need to be studied one by one to find the e.g G>A SNV mutation.
-        self.variation_ids = ClinVarAPI.find_all_variations(m)
+        self.variation_ids = ClinVarAPI.find_all_variations(self)
         if len(self.variation_ids) == 0:
             logging.warning(
-                f' cannot find "chr{m.chromosome}:{m.base_position}" in ClinVar')
+                f' cannot find "chr{self.chromosome}:{self.base_position}" in ClinVar')
             return
 
         for variation_id in self.variation_ids:
