@@ -1,6 +1,5 @@
 from urllib.request import urlopen
 import logging
-import typing
 import time
 import json
 import sys
@@ -51,7 +50,6 @@ class Mutation:
 
         self.variation_ids: list[str] = []
         self.variations: list[ClinVarVariation] = []
-        self.best_match: typing.Optional[ClinVarVariation] = None
 
     def translate_type(self):
         iontorrent_to_clinvar = {
@@ -102,49 +100,56 @@ class Mutation:
             logging.debug(f'line was: "{line}"')
             exit(1)
 
-    def search_clinvar(self):
+    def search_clinvar(self) -> ClinVarVariation | None:
         # ClinVar records do not store the mutation (deletion, SNV, insertion etc) in a serachable way.
-        # Such a search is not possible: chr13:32890572 AND SNV AND G>A
+        # E.g a search like this is not possible: "chr13:32890572 AND SNV AND G>A"
         # The esearch API returns all records identified by chr13:32890572 and those
         # records need to be studied one by one to find the e.g G>A SNV mutation.
         self.variation_ids = ClinVarAPI.find_all_variations(self)
         if len(self.variation_ids) == 0:
             logging.warning(
                 f' cannot find "chr{self.chromosome}:{self.base_position}" in ClinVar')
-            return
+            return None
 
+        if match := self.select_best_match():
+            return match
+
+        # If the mutation is COMPLEX or we can't match, bail out and just give the probable candidates for human review
+        print('\n', end='')
+        logging.error(
+            f'cannot find matching ClinVar recrod for "chr{m.chromosome}:{m.base_position} {m.reference_base}>{m.variant_base}"')
+        logging.info(f'  > candidates are:')
+        for variation in self.variations:
+            logging.info(
+                f'    > {variation.accession} - {variation.title} {variation.cdna_change}')
+        print('\n', end='')
+        return None
+
+    def select_best_match(self) -> ClinVarVariation | None:
         for variation_id in self.variation_ids:
             variation = ClinVarAPI.find_specific_variation(variation_id)
             self.variations.append(variation)
 
             if(f'{self.reference_base}>{self.variant_base}' in variation.cdna_change):
-                self.handle_found_item(variation)
-                break
+                self.find_accession_version(variation)
+                return variation
+
             # Try again as sometimes an A>G SNP is stored as T>C, but the canonical_spdi will have A>G
-            elif variation.obj_type == self.type and f'{self.base_position}:{self.reference_base}:{self.variant_base}' in variation.canonical_spdi:
-                self.handle_found_item(variation)
+            if variation.obj_type == self.type and f'{self.base_position}:{self.reference_base}:{self.variant_base}' in variation.canonical_spdi:
+                self.find_accession_version(variation)
                 logging.warning(
                     '  > matched using canonical_spdi, review needed')
-                break
+                return variation
+
             # Try again as sometimes an A>G SNP is stored as T>C, but the canonical_spdi will have A>G with GRCh38_base_position-1
-            elif variation.obj_type == self.type and f'{int(variation.grch38_position)-1}:{self.reference_base}:{self.variant_base}' in variation.canonical_spdi:
-                self.handle_found_item(variation)
+            if variation.obj_type == self.type and f'{int(variation.grch38_position)-1}:{self.reference_base}:{self.variant_base}' in variation.canonical_spdi:
+                self.find_accession_version(variation)
                 logging.warning(
                     '  > matched using canonical_spdi and the corresponding GRCh38 base position, review needed')
-                break
+                return variation
+        return None
 
-        if not self.best_match:
-            print('\n', end='')
-            logging.error(
-                f'cannot find matching ClinVar recrod for "chr{m.chromosome}:{m.base_position} {m.reference_base}>{m.variant_base}"')
-            logging.info(f'  > candidates are:')
-            for variation in self.variations:
-                logging.info(
-                    f'    > {variation.accession} - {variation.title} {variation.cdna_change}')
-            print('\n', end='')
-
-    def handle_found_item(self, variation: ClinVarVariation):
-        self.best_match = variation
+    def find_accession_version(self, variation: ClinVarVariation):
         var_with_accession = ClinVarAPI.get_variation_accession_version(
             variation.id)
         if variation.accession == var_with_accession.accession:
@@ -169,15 +174,15 @@ class ClinVarAPI:
         logging.debug(esearch_request)
         start_time = time.time()
         with urlopen(esearch_request) as esearch_response:
-        if not esearch_response.status == 200:
+            if not esearch_response.status == 200:
                 logging.error(
                     'esearch request failed: {esearch_response.status}')
-            exit(1)
-        end_time = time.time()
-        logging.debug(
-            f'esearch request took: {(end_time - start_time) * 1000:.0f}ms')
-        variation_ids = json.loads(esearch_response.read())[
-            'esearchresult']['idlist']
+                exit(1)
+            end_time = time.time()
+            logging.debug(
+                f'esearch request took: {(end_time - start_time) * 1000:.0f}ms')
+            variation_ids = json.loads(esearch_response.read())[
+                'esearchresult']['idlist']
         return variation_ids
 
     @staticmethod
@@ -187,15 +192,15 @@ class ClinVarAPI:
         logging.debug(esummary_request)
         start_time = time.time()
         with urlopen(esummary_request) as esummary_response:
-        if not esummary_response.status == 200:
+            if not esummary_response.status == 200:
                 logging.error(
                     'efetch request failed: {esummary_response.status}')
-            exit(1)
-        end_time = time.time()
-        logging.debug(
-            f'esummary request took: {(end_time - start_time) * 1000:.0f}ms')
-        json_data = json.loads(esummary_response.read())[
-            'result'][variation_id]
+                exit(1)
+            end_time = time.time()
+            logging.debug(
+                f'esummary request took: {(end_time - start_time) * 1000:.0f}ms')
+            json_data = json.loads(esummary_response.read())[
+                'result'][variation_id]
 
         var = ClinVarVariation()
         var.id = int(variation_id)
@@ -220,14 +225,14 @@ class ClinVarAPI:
         logging.debug(efetch_request)
         start_time = time.time()
         with urlopen(efetch_request) as efetch_response:
-        if not efetch_response.status == 200:
+            if not efetch_response.status == 200:
                 logging.error(
                     'efetch request failed: {efetch_response.status}')
-            exit(1)
-        end_time = time.time()
-        logging.debug(
-            f'efetch request took: {(end_time - start_time) * 1000:.0f}ms')
-        root = ET.fromstring(efetch_response.read())
+                exit(1)
+            end_time = time.time()
+            logging.debug(
+                f'efetch request took: {(end_time - start_time) * 1000:.0f}ms')
+            root = ET.fromstring(efetch_response.read())
 
         var = ClinVarVariation()
         var.accession = root[0].attrib['Accession']
@@ -237,8 +242,9 @@ class ClinVarAPI:
 
 with open('./test/BRCA_2022/101_22.txt', 'r') as input_file:
     logging.debug(f'file: {input_file.name}')
-    for line in input_file.readlines()[1:]:
+    search_and_results: list[tuple[Mutation, ClinVarVariation | None]] = []
         if len(line) == 0:
             continue
         m = Mutation(line)
-        m.search_clinvar()
+        clinvar_record = m.search_clinvar()
+        search_and_results.append((m, clinvar_record))
