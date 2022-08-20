@@ -14,12 +14,17 @@ console_handler.setLevel(logging.INFO)
 
 logging.basicConfig(
     level=logging.DEBUG,
-    format='%(asctime)s [%(levelname)-7.7s] %(message)s',
+    format='%(asctime)s %(levelname)-0.11s %(message)s',
     handlers=[
         debug_handler,
         console_handler
     ]
 )
+logging.addLevelName(logging.CRITICAL, ' [ FATAL ]')
+logging.addLevelName(logging.ERROR,    ' [ ERROR ]')
+logging.addLevelName(logging.WARNING,  ' [ WARN  ]')
+logging.addLevelName(logging.INFO, '')
+logging.addLevelName(logging.DEBUG,    '   [ DEBUG ]')
 
 
 class ClinVarVariation:
@@ -107,22 +112,20 @@ class Mutation:
         # records need to be studied one by one to find the e.g G>A SNV mutation.
         self.variation_ids = ClinVarAPI.find_all_variations(self)
         if len(self.variation_ids) == 0:
-            logging.warning(
-                f' cannot find "chr{self.chromosome}:{self.base_position}" in ClinVar')
+            logging.error(
+                f' > cannot find "chr{self.chromosome}:{self.base_position}" in ClinVar')
             return None
 
         if match := self.select_best_match():
             return match
 
         # If the mutation is COMPLEX or we can't match, bail out and just give the probable candidates for human review
-        print('\n', end='')
         logging.error(
-            f'cannot find matching ClinVar recrod for "chr{m.chromosome}:{m.base_position} {m.reference_base}>{m.variant_base}"')
-        logging.info(f'  > candidates are:')
+            f' > cannot find matching ClinVar recrod for "chr{m.chromosome}:{m.base_position} {m.reference_base}>{m.variant_base}"')
+        logging.info(f'           > candidates are:')
         for variation in self.variations:
             logging.info(
-                f'    > {variation.accession} - {variation.title} {variation.cdna_change}')
-        print('\n', end='')
+                f'             > {variation.accession} - {variation.title}')
         return None
 
     def select_best_match(self) -> ClinVarVariation | None:
@@ -138,14 +141,14 @@ class Mutation:
             if variation.obj_type == self.type and f'{self.base_position}:{self.reference_base}:{self.variant_base}' in variation.canonical_spdi:
                 self.find_accession_version(variation)
                 logging.warning(
-                    '  > matched using canonical_spdi, review needed')
+                    f' > chr{self.chromosome}:{self.base_position} matched using canonical_spdi, review needed')
                 return variation
 
             # Try again as sometimes an A>G SNP is stored as T>C, but the canonical_spdi will have A>G with GRCh38_base_position-1
             if variation.obj_type == self.type and f'{int(variation.grch38_position)-1}:{self.reference_base}:{self.variant_base}' in variation.canonical_spdi:
                 self.find_accession_version(variation)
                 logging.warning(
-                    '  > matched using canonical_spdi and the corresponding GRCh38 base position, review needed')
+                    ' > matched using canonical_spdi and the corresponding GRCh38 base position, review needed')
                 return variation
         return None
 
@@ -240,11 +243,23 @@ class ClinVarAPI:
         return var
 
 
-with open('./test/BRCA_2022/101_22.txt', 'r') as input_file:
+def get_linecount(input_file):
+    line_count = sum(1 for line in input_file if line.strip())
+    input_file.seek(0)
+    return line_count - 1  # first line is a header
+
+
+with open('./test/BRCA_2022/112_22.txt', 'r') as input_file:
     logging.debug(f'file: {input_file.name}')
+    line_count = get_linecount(input_file)
+
     search_and_results: list[tuple[Mutation, ClinVarVariation | None]] = []
+
+    for idx, line in enumerate(input_file.readlines()[1:]):
         if len(line) == 0:
             continue
         m = Mutation(line)
+        logging.info(
+            f'[{idx+1:>3}/{line_count:<3}] chr{m.chromosome}:{m.base_position}')
         clinvar_record = m.search_clinvar()
         search_and_results.append((m, clinvar_record))
