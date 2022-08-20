@@ -42,6 +42,7 @@ class Mutation:
         self.base_position = tokens[1]
         self.reference_base = tokens[2]
         self.variant_base = tokens[3]
+        self.frequency = tokens[6]
         self.type = tokens[9]
         logging.debug(
             f'\nself.chromosome: {self.chromosome}\nself.base_position: {self.base_position}\nself.reference_base: {self.reference_base}\nself.variant_base: {self.variant_base}')
@@ -80,6 +81,18 @@ class Mutation:
         if not self.variant_base.isalpha() and self.variant_base != '-':
             logging.error(
                 f'parsing failed: fourth column (Variant) expected to be a base or "-", got "{self.variant_base}"')
+            logging.debug(f'line was: "{line}"')
+            exit(1)
+
+        if not self.frequency.replace('.', '').isnumeric():
+            logging.error(
+                f'parsing failed: seventh column (Frequency) expected to be a floating point number", got "{self.frequency}"')
+            logging.debug(f'line was: "{line}"')
+            exit(1)
+
+        if int(self.frequency.split('.')[0]) > 100:
+            logging.error(
+                f'parsing failed: seventh column (Frequency) expected to be in [0-100]", got "{self.frequency}"')
             logging.debug(f'line was: "{line}"')
             exit(1)
 
@@ -139,8 +152,8 @@ class Mutation:
         else:
             logging.warning(
                 f' cannot find accession version for {self.chromosome} {self.base_position} (VCV{variation.accession})')
-        logging.info(
-            f'found match for chr{self.chromosome}:{self.base_position} {self.reference_base}>{self.variant_base}: {self.best_match.title}, {self.best_match.accession}.{self.best_match.accession_version}, {self.best_match.clinical_significance}')
+        logging.debug(
+            f'found match for chr{self.chromosome}:{self.base_position} {self.reference_base}>{self.variant_base}: {variation.title}, {variation.accession}.{variation.accession_version}, {self.frequency}%, {variation.clinical_significance}')
 
 
 class ClinVarAPI:
