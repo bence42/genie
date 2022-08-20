@@ -3,6 +3,7 @@ import logging
 import time
 import json
 import sys
+import argparse
 from pathlib import Path
 import xml.etree.ElementTree as ET
 
@@ -265,7 +266,20 @@ def get_linecount(input_file):
     return line_count - 1  # first line is a header
 
 
-with open('./test/BRCA_2022/112_22.txt', 'r') as input_file:
+if __name__ == '__main__':
+
+    arg_parser = argparse.ArgumentParser(
+        description='Queries the ClinVar database for mutations identified by Ion Torrent')
+    arg_parser.add_argument('--input', '-i',
+                            metavar='INPUT',
+                            dest='input_file',
+                            type=str,
+                            help='the path to the Ion Torrent raw output file',
+                            required=True)
+
+    args = arg_parser.parse_args()
+
+    with open(args.input_file, 'r') as input_file:
     logging.debug(f'file: {input_file.name}')
     line_count = get_linecount(input_file)
 
