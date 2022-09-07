@@ -249,6 +249,7 @@ class ClinVarAPI:
 
 
 def write_csv(results_file_name: str, search_and_results: list[tuple[Mutation, ClinVarVariation | None]]):
+    os.makedirs('./results', exist_ok=True)
     with open(f'./results/{results_file_name}', 'w') as output:
         output.write(
             f'Chromosome;Base position;ClinVar title;ClinVar accession;Frequency;Clinical significance')
