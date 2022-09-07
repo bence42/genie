@@ -70,43 +70,43 @@ class Mutation:
             logging.error(
                 f'parsing failed: first column (Chrom) expected to be chromosome number, got "{self.chromosome}"')
             logging.debug(f'line was: "{line}"')
-            exit(1)
+            sys.exit(1)
 
         if not self.base_position.isnumeric():
             logging.error(
                 f'parsing failed: second column (Position) expected to be position, got "{self.base_position}"')
             logging.debug(f'line was: "{line}"')
-            exit(1)
+            sys.exit(1)
 
         if not self.reference_base.isalpha() and self.reference_base != '-':
             logging.error(
                 f'parsing failed: third column (Ref) expected to be a base or "-", got "{self.reference_base}"')
             logging.debug(f'line was: "{line}"')
-            exit(1)
+            sys.exit(1)
 
         if not self.variant_base.isalpha() and self.variant_base != '-':
             logging.error(
                 f'parsing failed: fourth column (Variant) expected to be a base or "-", got "{self.variant_base}"')
             logging.debug(f'line was: "{line}"')
-            exit(1)
+            sys.exit(1)
 
         if not self.frequency.replace('.', '').isnumeric():
             logging.error(
                 f'parsing failed: seventh column (Frequency) expected to be a floating point number", got "{self.frequency}"')
             logging.debug(f'line was: "{line}"')
-            exit(1)
+            sys.exit(1)
 
         if int(self.frequency.split('.')[0]) > 100:
             logging.error(
                 f'parsing failed: seventh column (Frequency) expected to be in [0-100]", got "{self.frequency}"')
             logging.debug(f'line was: "{line}"')
-            exit(1)
+            sys.exit(1)
 
         if self.type not in ['SNP', 'INS', 'DEL', 'COMPLEX', 'MNP']:
             logging.error(
                 f'parsing failed: tenth column (Type) expected to be SNP/DEL/INS/COMPLEX, got "{self.type}"')
             logging.debug(f'line was: "{line}"')
-            exit(1)
+            sys.exit(1)
 
     def search_clinvar(self) -> ClinVarVariation | None:
         # ClinVar records do not store the mutation (deletion, SNV, insertion etc) in a serachable way.
@@ -185,7 +185,7 @@ class ClinVarAPI:
             if not esearch_response.status == 200:
                 logging.error(
                     'esearch request failed: {esearch_response.status}')
-                exit(1)
+                sys.exit(1)
             end_time = time.time()
             logging.debug(
                 f'esearch request took: {(end_time - start_time) * 1000:.0f}ms')
@@ -203,7 +203,7 @@ class ClinVarAPI:
             if not esummary_response.status == 200:
                 logging.error(
                     'efetch request failed: {esummary_response.status}')
-                exit(1)
+                sys.exit(1)
             end_time = time.time()
             logging.debug(
                 f'esummary request took: {(end_time - start_time) * 1000:.0f}ms')
@@ -236,7 +236,7 @@ class ClinVarAPI:
             if not efetch_response.status == 200:
                 logging.error(
                     'efetch request failed: {efetch_response.status}')
-                exit(1)
+                sys.exit(1)
             end_time = time.time()
             logging.debug(
                 f'efetch request took: {(end_time - start_time) * 1000:.0f}ms')
@@ -273,6 +273,7 @@ def write_csv(results_file_name: str, search_and_results: list[tuple[Mutation, C
                 records.append(record)
         json.dump(records, output_file)
 
+
 def get_linecount(input_file):
     line_count = sum(1 for line in input_file if line.strip())
     input_file.seek(0)
@@ -301,21 +302,21 @@ if __name__ == '__main__':
         with open(input_file_path, 'r') as input_file:
             logging.info(
                 f'[{file_idx+1:>3}/{len(args.input_files):<3}]{input_file.name}')
-    line_count = get_linecount(input_file)
+            line_count = get_linecount(input_file)
 
             mutations_and_records: list[tuple[Mutation,
                                               ClinVarVariation | None]] = []
 
             for line_idx, line in enumerate(input_file.readlines()[1:]):
-        if len(line) == 0:
-            continue
-        m = Mutation(line)
-        logging.info(
+                if len(line) == 0:
+                    continue
+                m = Mutation(line)
+                logging.info(
                     f'[{line_idx+1:>3}/{line_count:<3}] chr{m.chromosome}:{m.base_position}')
-        clinvar_record = m.search_clinvar()
+                clinvar_record = m.search_clinvar()
                 mutations_and_records.append((m, clinvar_record))
 
-    timestamp = time.strftime('%Y%m%d-%H%M%S')
+            timestamp = time.strftime('%Y%m%d-%H%M%S')
             results_file_name = Path(
                 input_file.name).stem + f'_{timestamp}_results.csv'
             write_csv(results_file_name, mutations_and_records)
