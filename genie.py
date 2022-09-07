@@ -259,6 +259,18 @@ def write_csv(results_file_name: str, search_and_results: list[tuple[Mutation, C
                 output.write(
                     f'\nchr{mutation.chromosome};{mutation.base_position};;;;')
 
+    with open(f'./results/{results_file_name}'.replace('.csv', '.json'), 'w') as output_file:
+        records = []
+        for mutation, clinvar_record in search_and_results:
+            if clinvar_record:
+                record = {}
+                record['chromosome'] = f'chr{mutation.chromosome}'
+                record['position'] = mutation.base_position
+                record['ref'] = mutation.reference_base
+                record['var'] = mutation.variant_base
+                record['vcv'] = clinvar_record.accession
+                records.append(record)
+        json.dump(records, output_file)
 
 def get_linecount(input_file):
     line_count = sum(1 for line in input_file if line.strip())
