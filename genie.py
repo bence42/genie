@@ -26,7 +26,7 @@ logging.addLevelName(logging.CRITICAL, ' [ FATAL ]')
 logging.addLevelName(logging.ERROR,    ' [ ERROR ]')
 logging.addLevelName(logging.WARNING,  ' [ WARN  ]')
 logging.addLevelName(logging.INFO, '')
-logging.addLevelName(logging.DEBUG,    '   [ DEBUG ]')
+logging.addLevelName(logging.DEBUG,    ' [ DEBUG ]')
 
 
 class ClinVarVariation:
