@@ -302,7 +302,7 @@ if __name__ == '__main__':
 
         with open(input_file_path, 'r') as input_file:
             logging.info(
-                f'[{file_idx+1:>3}/{len(args.input_files):<3}]{input_file.name}')
+                f'[{file_idx+1:>3}/{len(args.input_files):<3}] {input_file.name}')
             line_count = get_linecount(input_file)
 
             mutations_and_records: list[tuple[Mutation,
