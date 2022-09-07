@@ -4,6 +4,7 @@ import time
 import json
 import sys
 import argparse
+import os
 from pathlib import Path
 import xml.etree.ElementTree as ET
 
@@ -293,8 +294,13 @@ if __name__ == '__main__':
     args = arg_parser.parse_args()
 
     for file_idx, input_file_path in enumerate(args.input_files):
+        if not os.path.exists(input_file_path):
+            logging.error(f'no such file or directory: {input_file_path}')
+            sys.exit(1)
+
         with open(input_file_path, 'r') as input_file:
-            logging.info(f'[{file_idx+1:>3}/{len(args.input_files):<3}]{input_file.name}')
+            logging.info(
+                f'[{file_idx+1:>3}/{len(args.input_files):<3}]{input_file.name}')
     line_count = get_linecount(input_file)
 
             mutations_and_records: list[tuple[Mutation,
