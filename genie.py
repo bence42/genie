@@ -272,29 +272,32 @@ if __name__ == '__main__':
         description='Queries the ClinVar database for mutations identified by Ion Torrent')
     arg_parser.add_argument('--input', '-i',
                             metavar='INPUT',
-                            dest='input_file',
+                            dest='input_files',
+                            nargs="+",
                             type=str,
                             help='the path to the Ion Torrent raw output file',
                             required=True)
 
     args = arg_parser.parse_args()
 
-    with open(args.input_file, 'r') as input_file:
-    logging.debug(f'file: {input_file.name}')
+    for file_idx, input_file_path in enumerate(args.input_files):
+        with open(input_file_path, 'r') as input_file:
+            logging.info(f'[{file_idx+1:>3}/{len(args.input_files):<3}]{input_file.name}')
     line_count = get_linecount(input_file)
 
-    search_and_results: list[tuple[Mutation, ClinVarVariation | None]] = []
+            mutations_and_records: list[tuple[Mutation,
+                                              ClinVarVariation | None]] = []
 
-    for idx, line in enumerate(input_file.readlines()[1:]):
+            for line_idx, line in enumerate(input_file.readlines()[1:]):
         if len(line) == 0:
             continue
         m = Mutation(line)
         logging.info(
-            f'[{idx+1:>3}/{line_count:<3}] chr{m.chromosome}:{m.base_position}')
+                    f'[{line_idx+1:>3}/{line_count:<3}] chr{m.chromosome}:{m.base_position}')
         clinvar_record = m.search_clinvar()
-        search_and_results.append((m, clinvar_record))
+                mutations_and_records.append((m, clinvar_record))
 
     timestamp = time.strftime('%Y%m%d-%H%M%S')
-    results_file_name = Path(input_file.name).stem + \
-        f'_{timestamp}_results.csv'
-    write_csv(results_file_name, search_and_results)
+            results_file_name = Path(
+                input_file.name).stem + f'_{timestamp}_results.csv'
+            write_csv(results_file_name, mutations_and_records)
