@@ -250,8 +250,13 @@ class ClinVarAPI:
         return var
 
 
-def write_csv(results_file_name: str, search_and_results: list[tuple[Mutation, ClinVarVariation | None]]):
+def write_csv(input_file, search_and_results: list[tuple[Mutation, ClinVarVariation | None]]):
     os.makedirs('./results', exist_ok=True)
+
+    timestamp = time.strftime('%Y%m%d-%H%M%S')
+    results_file_name = Path(
+        input_file.name).stem + f'_{timestamp}_results.csv'
+
     with open(f'./results/{results_file_name}', 'w') as output:
         output.write(
             f'Chromosome;Base position;ClinVar title;ClinVar accession;Frequency;Clinical significance')
@@ -263,18 +268,24 @@ def write_csv(results_file_name: str, search_and_results: list[tuple[Mutation, C
                 output.write(
                     f'\nchr{mutation.chromosome};{mutation.base_position};;;;')
 
-    with open(f'./results/{results_file_name}'.replace('.csv', '.json'), 'w') as output_file:
+
+def write_json(input_file, search_and_results: list[tuple[Mutation, ClinVarVariation | None]]):
+    os.makedirs('./results/json', exist_ok=True)
+
+    results_file_name = Path(
+        input_file.name).stem + ".json"
+
+    with open(f'./results/json/{results_file_name}', 'w') as output_file:
         records = []
         for mutation, clinvar_record in search_and_results:
-            if clinvar_record:
                 record = {}
-                record['chromosome'] = f'chr{mutation.chromosome}'
+            record['chromosome'] = f'{mutation.chromosome}'
                 record['position'] = mutation.base_position
                 record['ref'] = mutation.reference_base
                 record['var'] = mutation.variant_base
-                record['vcv'] = clinvar_record.accession
+            record['vcv'] = clinvar_record.accession if clinvar_record else ""
                 records.append(record)
-        json.dump(records, output_file)
+        json.dump(records, output_file, indent=4)
 
 
 def get_linecount(input_file):
@@ -319,7 +330,5 @@ if __name__ == '__main__':
                 clinvar_record = m.search_clinvar()
                 mutations_and_records.append((m, clinvar_record))
 
-            timestamp = time.strftime('%Y%m%d-%H%M%S')
-            results_file_name = Path(
-                input_file.name).stem + f'_{timestamp}_results.csv'
-            write_csv(results_file_name, mutations_and_records)
+            write_csv(input_file, mutations_and_records)
+            write_json(input_file, mutations_and_records)
