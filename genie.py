@@ -15,12 +15,18 @@ debug_handler.setLevel(logging.DEBUG)
 console_handler = logging.StreamHandler(sys.stdout)
 console_handler.setLevel(logging.INFO)
 
+timestamp = time.strftime('%Y%m%d-%H%M%S')
+os.makedirs('./results', exist_ok=True)
+log_handler = logging.FileHandler(f'./results/{timestamp}_log.txt')
+log_handler.setLevel(logging.INFO)
+
 logging.basicConfig(
     level=logging.DEBUG,
     format='%(asctime)s %(levelname)-0.11s %(message)s',
     handlers=[
         debug_handler,
-        console_handler
+        console_handler,
+        log_handler
     ]
 )
 logging.addLevelName(logging.CRITICAL, ' [ FATAL ]')
