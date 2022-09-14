@@ -150,15 +150,11 @@ class Mutation:
             # Try again as sometimes an A>G SNP is stored as T>C, but the canonical_spdi will have A>G
             if variation.obj_type == self.type and f'{self.base_position}:{self.reference_base}:{self.variant_base}' in variation.canonical_spdi:
                 self.find_accession_version(variation)
-                logging.warning(
-                    f' > chr{self.chromosome}:{self.base_position} matched using canonical_spdi, review needed')
                 return variation
 
             # Try again as sometimes an A>G SNP is stored as T>C, but the canonical_spdi will have A>G with GRCh38_base_position-1
             if variation.obj_type == self.type and f'{int(variation.grch38_position)-1}:{self.reference_base}:{self.variant_base}' in variation.canonical_spdi:
                 self.find_accession_version(variation)
-                logging.warning(
-                    ' > matched using canonical_spdi and the corresponding GRCh38 base position, review needed')
                 return variation
         return None
 
