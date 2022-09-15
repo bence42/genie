@@ -308,6 +308,24 @@ def expand_folders(input_paths: list[str]) -> list[str]:
     return input_files
 
 
+def find_mutations(input_file, line_count: int) -> list[tuple[Mutation,
+                                                                ClinVarVariation | None]]:
+
+    mutations_and_records: list[tuple[Mutation,
+                                      ClinVarVariation | None]] = []
+
+    for line_idx, line in enumerate(input_file.readlines()[1:]):
+        if len(line) == 0:
+            continue
+        m = Mutation(line)
+        logging.info(
+            f'[{line_idx+1:>3}/{line_count:<3}] chr{m.chromosome}:{m.base_position}')
+        clinvar_record = m.search_clinvar()
+        mutations_and_records.append((m, clinvar_record))
+
+    return mutations_and_records
+
+
 if __name__ == '__main__':
 
     arg_parser = argparse.ArgumentParser(
@@ -329,17 +347,7 @@ if __name__ == '__main__':
                 f'[{file_idx+1:>3}/{len(input_files):<3}] {input_file.name}')
             line_count = get_linecount(input_file)
 
-            mutations_and_records: list[tuple[Mutation,
-                                              ClinVarVariation | None]] = []
-
-            for line_idx, line in enumerate(input_file.readlines()[1:]):
-                if len(line) == 0:
-                    continue
-                m = Mutation(line)
-                logging.info(
-                    f'[{line_idx+1:>3}/{line_count:<3}] chr{m.chromosome}:{m.base_position}')
-                clinvar_record = m.search_clinvar()
-                mutations_and_records.append((m, clinvar_record))
+            mutations_and_records = find_mutations(input_file, line_count)
 
             write_csv(input_file, mutations_and_records)
             write_json(input_file, mutations_and_records)
