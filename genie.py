@@ -49,7 +49,9 @@ def log_debug_infos(input_paths, input_files):
     logging.debug(f'args: {input_paths}')
     logging.debug(f'expanded args: {input_files}')
     for file in input_files:
-        logging.debug(f'{file} last modified: {time.ctime(os.path.getmtime(file))}')
+        logging.debug(
+            f'{file} last modified: {time.ctime(os.path.getmtime(file))}')
+
 
 class ClinVarVariation:
     id: int = -1  # 125749 etc
@@ -343,7 +345,7 @@ def find_mutations(input_file, line_count: int) -> list[tuple[Mutation,
 
 if __name__ == '__main__':
     arg_parser = argparse.ArgumentParser(prog='genie',
-        description='Queries the ClinVar database for mutations identified by Ion Torrent')
+                                         description='Queries the ClinVar database for mutations identified by Ion Torrent')
     arg_parser.add_argument('--input', '-i',
                             metavar='INPUT',
                             dest='input_paths',
