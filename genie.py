@@ -10,11 +10,11 @@ from pathlib import Path
 import xml.etree.ElementTree as ET
 
 __version__ = "0.3.0"
+timestamp = time.strftime('%Y%m%d-%H%M%S')
+results_folder = f'./results_{timestamp}'
 
 
 def install_loggers():
-    timestamp = time.strftime('%Y%m%d-%H%M%S')
-    results_folder = f'./results_{timestamp}'
     os.makedirs(results_folder, exist_ok=True)
 
     debug_handler = logging.FileHandler(f'{results_folder}/debug.log')
@@ -268,13 +268,10 @@ class ClinVarAPI:
 
 
 def write_csv(input_file, search_and_results: list[tuple[Mutation, ClinVarVariation | list[ClinVarVariation] | None]]):
-    os.makedirs('./results', exist_ok=True)
-
-    timestamp = time.strftime('%Y%m%d-%H%M%S')
     results_file_name = Path(
         input_file.name).stem + f'_{timestamp}_results.csv'
 
-    with open(f'./results/{results_file_name}', 'w') as output:
+    with open(f'{results_folder}/{results_file_name}', 'w') as output:
         output.write(
             f'Chromosome;Base position;ClinVar title;ClinVar accession;Frequency;Clinical significance;Candidates')
         for mutation, clinvar_record in search_and_results:
@@ -290,12 +287,12 @@ def write_csv(input_file, search_and_results: list[tuple[Mutation, ClinVarVariat
 
 
 def write_json(input_file, search_and_results: list[tuple[Mutation, ClinVarVariation | list[ClinVarVariation] | None]]):
-    os.makedirs('./results/json', exist_ok=True)
+    os.makedirs(f'{results_folder}/json', exist_ok=True)
 
     results_file_name = Path(
         input_file.name).stem + ".json"
 
-    with open(f'./results/json/{results_file_name}', 'w') as output_file:
+    with open(f'{results_folder}/json/{results_file_name}', 'w') as output_file:
         records = []
         for mutation, clinvar_record in search_and_results:
             record = {}
