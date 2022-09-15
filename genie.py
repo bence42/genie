@@ -342,11 +342,7 @@ def find_mutations(input_file, line_count: int) -> list[tuple[Mutation,
 
 
 if __name__ == '__main__':
-    install_loggers()
-
-    logging.info(f'Genie v{__version__}')
-
-    arg_parser = argparse.ArgumentParser(
+    arg_parser = argparse.ArgumentParser(prog='genie',
         description='Queries the ClinVar database for mutations identified by Ion Torrent')
     arg_parser.add_argument('--input', '-i',
                             metavar='INPUT',
@@ -355,8 +351,12 @@ if __name__ == '__main__':
                             type=str,
                             help='the path to the Ion Torrent raw output file or the parent folder for them.',
                             required=True)
-
+    arg_parser.add_argument(
+        '--version', '-v', action='version', version=f'%(prog)s {__version__}')
     args = arg_parser.parse_args()
+
+    install_loggers()
+    logging.info(f'genie v{__version__}')
 
     input_files = expand_folders(args.input_paths)
     log_debug_infos(args.input_paths, input_files)
