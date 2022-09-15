@@ -131,7 +131,7 @@ class Mutation:
             logging.debug(f'line was: "{line}"')
             sys.exit(1)
 
-    def search_clinvar(self) -> ClinVarVariation | None:
+    def search_clinvar(self) -> ClinVarVariation | list[ClinVarVariation] | None:
         # ClinVar records do not store the mutation (deletion, SNV, insertion etc) in a serachable way.
         # E.g a search like this is not possible: "chr13:32890572 AND SNV AND G>A"
         # The esearch API returns all records identified by chr13:32890572 and those
@@ -152,7 +152,7 @@ class Mutation:
         for variation in self.variations:
             logging.info(
                 f'             > {variation.accession} - {variation.title}')
-        return None
+        return self.variations
 
     def select_best_match(self) -> ClinVarVariation | None:
         for variation_id in self.variation_ids:
@@ -267,7 +267,7 @@ class ClinVarAPI:
         return var
 
 
-def write_csv(input_file, search_and_results: list[tuple[Mutation, ClinVarVariation | None]]):
+def write_csv(input_file, search_and_results: list[tuple[Mutation, ClinVarVariation | list[ClinVarVariation] | None]]):
     os.makedirs('./results', exist_ok=True)
 
     timestamp = time.strftime('%Y%m%d-%H%M%S')
@@ -276,17 +276,20 @@ def write_csv(input_file, search_and_results: list[tuple[Mutation, ClinVarVariat
 
     with open(f'./results/{results_file_name}', 'w') as output:
         output.write(
-            f'Chromosome;Base position;ClinVar title;ClinVar accession;Frequency;Clinical significance')
+            f'Chromosome;Base position;ClinVar title;ClinVar accession;Frequency;Clinical significance;Candidates')
         for mutation, clinvar_record in search_and_results:
-            if clinvar_record:
+            if clinvar_record and isinstance(clinvar_record, ClinVarVariation):
                 output.write(
                     f'\nchr{mutation.chromosome};{mutation.base_position};{clinvar_record.title};{clinvar_record.accession}.{clinvar_record.accession_version};{mutation.frequency}%;{clinvar_record.clinical_significance}')
+            elif clinvar_record and isinstance(clinvar_record, list):
+                output.write(
+                    f'\nchr{mutation.chromosome};{mutation.base_position};;;;;{[f"VCV{one_clinvar_record.id}" for one_clinvar_record in clinvar_record]};')
             else:
                 output.write(
                     f'\nchr{mutation.chromosome};{mutation.base_position};;;;')
 
 
-def write_json(input_file, search_and_results: list[tuple[Mutation, ClinVarVariation | None]]):
+def write_json(input_file, search_and_results: list[tuple[Mutation, ClinVarVariation | list[ClinVarVariation] | None]]):
     os.makedirs('./results/json', exist_ok=True)
 
     results_file_name = Path(
@@ -300,7 +303,13 @@ def write_json(input_file, search_and_results: list[tuple[Mutation, ClinVarVaria
             record['position'] = mutation.base_position
             record['ref'] = mutation.reference_base
             record['var'] = mutation.variant_base
-            record['vcv'] = clinvar_record.accession if clinvar_record else ""
+            if isinstance(clinvar_record, ClinVarVariation):
+                record['vcv'] = clinvar_record.accession
+            elif isinstance(clinvar_record, list):
+                record['vcv'] = [
+                    one_clinvar_record.accession for one_clinvar_record in clinvar_record]
+            else:
+                record['vcv'] = ""
             records.append(record)
         json.dump(records, output_file, indent=4)
 
@@ -326,10 +335,10 @@ def expand_folders(input_paths: list[str]) -> list[str]:
 
 
 def find_mutations(input_file, line_count: int) -> list[tuple[Mutation,
-                                                              ClinVarVariation | None]]:
+                                                              ClinVarVariation | list[ClinVarVariation] | None]]:
 
     mutations_and_records: list[tuple[Mutation,
-                                      ClinVarVariation | None]] = []
+                                      ClinVarVariation | list[ClinVarVariation] | None]] = []
 
     for line_idx, line in enumerate(input_file.readlines()[1:]):
         if len(line) == 0:
