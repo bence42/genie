@@ -8,6 +8,9 @@ import os
 from pathlib import Path
 import xml.etree.ElementTree as ET
 
+__version__ = "0.3.0"
+
+
 
 debug_handler = logging.FileHandler("./debug.log")
 debug_handler.setLevel(logging.DEBUG)
@@ -327,6 +330,7 @@ def find_mutations(input_file, line_count: int) -> list[tuple[Mutation,
 
 
 if __name__ == '__main__':
+    logging.info(f'Genie v{__version__}')
 
     arg_parser = argparse.ArgumentParser(
         description='Queries the ClinVar database for mutations identified by Ion Torrent')
