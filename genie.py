@@ -5,6 +5,7 @@ import json
 import sys
 import argparse
 import os
+import platform
 from pathlib import Path
 import xml.etree.ElementTree as ET
 
@@ -38,6 +39,15 @@ logging.addLevelName(logging.WARNING,  ' [ WARN  ]')
 logging.addLevelName(logging.INFO, '')
 logging.addLevelName(logging.DEBUG,    ' [ DEBUG ]')
 
+
+def log_debug_infos(input_paths, input_files):
+
+    logging.debug(f'host: {platform.node()}')
+    logging.debug(f'cwd: {os.getcwd()}')
+    logging.debug(f'args: {input_paths}')
+    logging.debug(f'expanded args: {input_files}')
+    for file in input_files:
+        logging.debug(f'{file} last modified: {time.ctime(os.path.getmtime(file))}')
 
 class ClinVarVariation:
     id: int = -1  # 125749 etc
@@ -343,7 +353,9 @@ if __name__ == '__main__':
                             required=True)
 
     args = arg_parser.parse_args()
+
     input_files = expand_folders(args.input_paths)
+    log_debug_infos(args.input_paths, input_files)
 
     for file_idx, input_file_path in enumerate(input_files):
         with open(input_file_path, 'r') as input_file:
