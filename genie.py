@@ -12,32 +12,34 @@ import xml.etree.ElementTree as ET
 __version__ = "0.3.0"
 
 
+def install_loggers():
+    timestamp = time.strftime('%Y%m%d-%H%M%S')
+    results_folder = f'./results_{timestamp}'
+    os.makedirs(results_folder, exist_ok=True)
 
-debug_handler = logging.FileHandler("./debug.log")
-debug_handler.setLevel(logging.DEBUG)
+    debug_handler = logging.FileHandler(f'{results_folder}/debug.log')
+    debug_handler.setLevel(logging.DEBUG)
 
-console_handler = logging.StreamHandler(sys.stdout)
-console_handler.setLevel(logging.INFO)
+    console_handler = logging.StreamHandler(sys.stdout)
+    console_handler.setLevel(logging.INFO)
 
-timestamp = time.strftime('%Y%m%d-%H%M%S')
-os.makedirs('./results', exist_ok=True)
-log_handler = logging.FileHandler(f'./results/{timestamp}_log.txt')
-log_handler.setLevel(logging.INFO)
+    log_handler = logging.FileHandler(f'{results_folder}/log.txt')
+    log_handler.setLevel(logging.INFO)
 
-logging.basicConfig(
-    level=logging.DEBUG,
-    format='%(asctime)s %(levelname)-0.11s %(message)s',
-    handlers=[
-        debug_handler,
-        console_handler,
-        log_handler
-    ]
-)
-logging.addLevelName(logging.CRITICAL, ' [ FATAL ]')
-logging.addLevelName(logging.ERROR,    ' [ ERROR ]')
-logging.addLevelName(logging.WARNING,  ' [ WARN  ]')
-logging.addLevelName(logging.INFO, '')
-logging.addLevelName(logging.DEBUG,    ' [ DEBUG ]')
+    logging.basicConfig(
+        level=logging.DEBUG,
+        format='%(asctime)s %(levelname)-0.11s %(message)s',
+        handlers=[
+            debug_handler,
+            console_handler,
+            log_handler
+        ]
+    )
+    logging.addLevelName(logging.CRITICAL, ' [ FATAL ]')
+    logging.addLevelName(logging.ERROR,    ' [ ERROR ]')
+    logging.addLevelName(logging.WARNING,  ' [ WARN  ]')
+    logging.addLevelName(logging.INFO, '')
+    logging.addLevelName(logging.DEBUG,    ' [ DEBUG ]')
 
 
 def log_debug_infos(input_paths, input_files):
@@ -340,6 +342,8 @@ def find_mutations(input_file, line_count: int) -> list[tuple[Mutation,
 
 
 if __name__ == '__main__':
+    install_loggers()
+
     logging.info(f'Genie v{__version__}')
 
     arg_parser = argparse.ArgumentParser(
