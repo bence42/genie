@@ -130,7 +130,7 @@ class Mutation:
 
         # If the mutation is COMPLEX or we can't match, bail out and just give the probable candidates for human review
         logging.error(
-            f' > cannot find matching ClinVar recrod for "chr{m.chromosome}:{m.base_position} {m.reference_base}>{m.variant_base}"')
+            f' > cannot find matching ClinVar recrod for "chr{self.chromosome}:{self.base_position} {self.reference_base}>{self.variant_base}"')
         logging.info(f'           > candidates are:')
         for variation in self.variations:
             logging.info(
@@ -309,7 +309,7 @@ def expand_folders(input_paths: list[str]) -> list[str]:
 
 
 def find_mutations(input_file, line_count: int) -> list[tuple[Mutation,
-                                                                ClinVarVariation | None]]:
+                                                              ClinVarVariation | None]]:
 
     mutations_and_records: list[tuple[Mutation,
                                       ClinVarVariation | None]] = []
