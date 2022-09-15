@@ -278,13 +278,13 @@ def write_json(input_file, search_and_results: list[tuple[Mutation, ClinVarVaria
     with open(f'./results/json/{results_file_name}', 'w') as output_file:
         records = []
         for mutation, clinvar_record in search_and_results:
-                record = {}
+            record = {}
             record['chromosome'] = f'{mutation.chromosome}'
-                record['position'] = mutation.base_position
-                record['ref'] = mutation.reference_base
-                record['var'] = mutation.variant_base
+            record['position'] = mutation.base_position
+            record['ref'] = mutation.reference_base
+            record['var'] = mutation.variant_base
             record['vcv'] = clinvar_record.accession if clinvar_record else ""
-                records.append(record)
+            records.append(record)
         json.dump(records, output_file, indent=4)
 
 
@@ -294,28 +294,39 @@ def get_linecount(input_file):
     return line_count - 1  # first line is a header
 
 
+def expand_folders(input_paths: list[str]) -> list[str]:
+    input_files = []
+    for path in input_paths:
+        if not os.path.exists(path):
+            raise RuntimeError(f'no such file or directory: {path}')
+
+        if os.path.isdir(path):
+            input_files.extend(os.path.join(path, file)
+                               for file in os.listdir(path))
+        else:
+            input_files.append(path)
+    return input_files
+
+
 if __name__ == '__main__':
 
     arg_parser = argparse.ArgumentParser(
         description='Queries the ClinVar database for mutations identified by Ion Torrent')
     arg_parser.add_argument('--input', '-i',
                             metavar='INPUT',
-                            dest='input_files',
+                            dest='input_paths',
                             nargs="+",
                             type=str,
-                            help='the path to the Ion Torrent raw output file',
+                            help='the path to the Ion Torrent raw output file or the parent folder for them.',
                             required=True)
 
     args = arg_parser.parse_args()
+    input_files = expand_folders(args.input_paths)
 
-    for file_idx, input_file_path in enumerate(args.input_files):
-        if not os.path.exists(input_file_path):
-            logging.error(f'no such file or directory: {input_file_path}')
-            sys.exit(1)
-
+    for file_idx, input_file_path in enumerate(input_files):
         with open(input_file_path, 'r') as input_file:
             logging.info(
-                f'[{file_idx+1:>3}/{len(args.input_files):<3}] {input_file.name}')
+                f'[{file_idx+1:>3}/{len(input_files):<3}] {input_file.name}')
             line_count = get_linecount(input_file)
 
             mutations_and_records: list[tuple[Mutation,
