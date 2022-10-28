@@ -250,21 +250,25 @@ class ClinVarAPI:
         # e.g: https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi?db=clinvar&rettype=vcv&is_variationid&id=125889
         efetch_request = f'{ClinVarAPI.BASE_EFETCH_URL}&rettype=vcv&is_variationid&id={variation_id}'
         logging.debug(efetch_request)
-        start_time = time.time()
-        with urlopen(efetch_request) as efetch_response:
-            if not efetch_response.status == 200:
-                logging.error(
-                    'efetch request failed: {efetch_response.status}')
-                sys.exit(1)
-            end_time = time.time()
-            logging.debug(
-                f'efetch request took: {(end_time - start_time) * 1000:.0f}ms')
-            root = ET.fromstring(efetch_response.read())
+        for attempt in range(10):
+            try:
+                start_time = time.time()
+                with urlopen(efetch_request) as efetch_response:
+                    logging.debug(
+                        f'efetch request took: {(time.time() - start_time) * 1000:.0f}ms')
+                    root = ET.fromstring(efetch_response.read())
 
-        var = ClinVarVariation()
-        var.accession = root[0].attrib['Accession']
-        var.accession_version = root[0].attrib['Version']
-        return var
+                    var = ClinVarVariation()
+                    var.accession = root[0].attrib['Accession']
+                    var.accession_version = root[0].attrib['Version']
+                    return var
+            except Exception as e:
+                logging.debug(
+                    f'efetch request failed with "{e}" on attempt {attempt}')
+                time.sleep(1)
+                continue
+        logging.error(f'efetch request failed 10 times.')
+        sys.exit(1)
 
 
 def write_csv(input_file, search_and_results: list[tuple[Mutation, ClinVarVariation | list[ClinVarVariation] | None]]):
