@@ -217,33 +217,37 @@ class ClinVarAPI:
         # e.g: https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi?db=clinvar&id=822206&retmode=json
         esummary_request = f'{ClinVarAPI.BASE_ESUMMARY_URL}&id={variation_id}&retmode=json'
         logging.debug(esummary_request)
-        start_time = time.time()
-        with urlopen(esummary_request) as esummary_response:
-            if not esummary_response.status == 200:
-                logging.error(
-                    'efetch request failed: {esummary_response.status}')
-                sys.exit(1)
-            end_time = time.time()
-            logging.debug(
-                f'esummary request took: {(end_time - start_time) * 1000:.0f}ms')
-            json_data = json.loads(esummary_response.read())[
-                'result'][variation_id]
+        for attempt in range(10):
+            try:
+                start_time = time.time()
+                with urlopen(esummary_request) as esummary_response:
+                    logging.debug(
+                        f'esummary request took: {(time.time() - start_time) * 1000:.0f}ms')
+                    json_data = json.loads(esummary_response.read())[
+                        'result'][variation_id]
 
-        var = ClinVarVariation()
-        var.id = int(variation_id)
-        var.title = json_data['title']
-        var.clinical_significance = json_data['clinical_significance']['description']
-        var.accession = json_data['accession']
-        var.obj_type = json_data['obj_type']
-        var.cdna_change = json_data['variation_set'][0]['cdna_change']
+                var = ClinVarVariation()
+                var.id = int(variation_id)
+                var.title = json_data['title']
+                var.clinical_significance = json_data['clinical_significance']['description']
+                var.accession = json_data['accession']
+                var.obj_type = json_data['obj_type']
+                var.cdna_change = json_data['variation_set'][0]['cdna_change']
 
-        for variation_loc in json_data['variation_set'][0]['variation_loc']:
-            if 'GRCh38' in variation_loc['assembly_name']:
-                var.grch38_position = variation_loc['start']
-                break
+                for variation_loc in json_data['variation_set'][0]['variation_loc']:
+                    if 'GRCh38' in variation_loc['assembly_name']:
+                        var.grch38_position = variation_loc['start']
+                        break
 
-        var.canonical_spdi = json_data['variation_set'][0]['canonical_spdi']
-        return var
+                var.canonical_spdi = json_data['variation_set'][0]['canonical_spdi']
+                return var
+            except Exception as e:
+                logging.debug(
+                    f'esummary request failed with "{e}" on attempt {attempt}')
+                time.sleep(1)
+                continue
+        logging.error(f'esummary request failed 10 times.')
+        sys.exit(1)
 
     @staticmethod
     def get_variation_accession_version(variation_id: str | int) -> ClinVarVariation:
