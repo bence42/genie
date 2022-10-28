@@ -199,18 +199,22 @@ class ClinVarAPI:
         # e.g: https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=clinvar&term=13[Chromosome]+AND+32906729[Base+Position+for+Assembly+GRCh37]&retmode=json
         esearch_request = f'{ClinVarAPI.BASE_ESEARCH_URL}&term={mutation.chromosome}[Chromosome]+AND+{mutation.base_position}[Base+Position+for+Assembly+GRCh37]&retmode=json'
         logging.debug(esearch_request)
-        start_time = time.time()
-        with urlopen(esearch_request) as esearch_response:
-            if not esearch_response.status == 200:
-                logging.error(
-                    'esearch request failed: {esearch_response.status}')
-                sys.exit(1)
-            end_time = time.time()
-            logging.debug(
-                f'esearch request took: {(end_time - start_time) * 1000:.0f}ms')
-            variation_ids = json.loads(esearch_response.read())[
-                'esearchresult']['idlist']
-        return variation_ids
+        for attempt in range(10):
+            try:
+                start_time = time.time()
+                with urlopen(esearch_request) as esearch_response:
+                    logging.debug(
+                        f'esearch request took: {(time.time() - start_time) * 1000:.0f}ms')
+                    variation_ids = json.loads(esearch_response.read())[
+                        'esearchresult']['idlist']
+                return variation_ids
+            except Exception as e:
+                logging.debug(
+                    f'esearch request failed with "{e}" on attempt {attempt}')
+                time.sleep(1)
+                continue
+        logging.error(f'esearch request failed 10 times.')
+        sys.exit(1)
 
     @staticmethod
     def find_specific_variation(variation_id: str | int) -> ClinVarVariation:
