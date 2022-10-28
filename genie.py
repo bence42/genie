@@ -9,7 +9,7 @@ import platform
 from pathlib import Path
 import xml.etree.ElementTree as ET
 
-__version__ = "0.3.0"
+__version__ = "0.3.1"
 timestamp = time.strftime('%Y%m%d-%H%M%S')
 results_folder = f'./results_{timestamp}'
 
